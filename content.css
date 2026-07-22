@@ -1,0 +1,46 @@
+#gemini-web-search-control {
+  --gws-control-height: 32px;
+  --gws-checkbox-size: 16px;
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: var(--gws-control-height);
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  visibility: hidden;
+}
+
+#gemini-web-search-control .gemini-web-search-label {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--gws-control-height);
+  padding: 0 8px;
+  border-radius: 8px;
+  color: inherit;
+  font: 500 13px/1.4 Arial, sans-serif;
+  cursor: pointer;
+  user-select: none;
+}
+
+#gemini-web-search-control .gemini-web-search-label:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+#gemini-web-search-control .gemini-web-search-checkbox {
+  width: var(--gws-checkbox-size);
+  height: var(--gws-checkbox-size);
+  margin: 0;
+  accent-color: #1a73e8;
+  cursor: pointer;
+}
+
+#gemini-web-search-control .gemini-web-search-text {
+  white-space: nowrap;
+}
