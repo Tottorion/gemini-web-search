@@ -4,6 +4,8 @@
   if (location.hostname !== "gemini.google.com") return;
 
   const CONTROL_ID = "gemini-web-search-control";
+  const SUPPORTED_PATH_PATTERN =
+    /^\/(?:u\/\d+\/)?(?:app|images|gem)(?:\/|$)/;
   const SUFFIX = "最新情報";
   const IME_PROCESSING_KEY_CODE = 229;
   const EDITOR_SCORE = Object.freeze({
@@ -30,9 +32,9 @@
     MAX_VERTICAL_DISTANCE_PX: 160,
     EDITOR_HEIGHT_BUFFER_PX: 80,
   });
-  const CONTROL_POSITION = Object.freeze({
-    GAP_PX: 8,
-    VIEWPORT_MARGIN_PX: 8,
+  const ACTION_ROW_SEARCH = Object.freeze({
+    MAX_ANCESTOR_DEPTH: 6,
+    MIN_VISIBLE_BUTTONS: 2,
   });
   const EDITOR_SELECTORS = [
     'rich-textarea [contenteditable="true"][role="textbox"]',
@@ -48,6 +50,15 @@
   let control = null;
   let currentEditor = null;
   let mountScheduled = false;
+
+  function isSupportedPage() {
+    return SUPPORTED_PATH_PATTERN.test(location.pathname);
+  }
+
+  function unmountControl() {
+    if (control?.isConnected) control.remove();
+    currentEditor = null;
+  }
 
   function isVisible(element) {
     if (!(element instanceof HTMLElement)) return false;
@@ -217,44 +228,73 @@
     return bestScore >= MODEL_SCORE.MINIMUM ? bestButton : null;
   }
 
-  function positionControl(modelButton) {
-    const buttonRect = modelButton.getBoundingClientRect();
-    if (buttonRect.width === 0 || buttonRect.height === 0) {
-      control.style.visibility = "hidden";
-      return;
+  function findActionRow(modelButton) {
+    let child = modelButton;
+    let parent = modelButton.parentElement;
+    let depth = 0;
+
+    while (
+      parent &&
+      parent !== document.body &&
+      depth < ACTION_ROW_SEARCH.MAX_ANCESTOR_DEPTH
+    ) {
+      const display = getComputedStyle(parent).display;
+      const visibleButtonCount = Array.from(
+        parent.querySelectorAll('button, [role="button"]')
+      ).filter(isVisible).length;
+
+      if (
+        (display === "flex" || display === "inline-flex") &&
+        visibleButtonCount >= ACTION_ROW_SEARCH.MIN_VISIBLE_BUTTONS
+      ) {
+        return { container: parent, anchor: child };
+      }
+
+      child = parent;
+      parent = parent.parentElement;
+      depth += 1;
     }
 
-    const controlWidth = control.offsetWidth;
-    const controlHeight = control.offsetHeight;
-    const left = Math.max(
-      CONTROL_POSITION.VIEWPORT_MARGIN_PX,
-      buttonRect.left - controlWidth - CONTROL_POSITION.GAP_PX
-    );
-    const top = buttonRect.top + (buttonRect.height - controlHeight) / 2;
-
-    control.style.left = `${Math.round(left)}px`;
-    control.style.top = `${Math.round(top)}px`;
-    control.style.visibility = "visible";
+    return null;
   }
 
   function mountControl() {
     mountScheduled = false;
 
+    if (!isSupportedPage()) {
+      unmountControl();
+      return;
+    }
+
     const editor = findPromptEditor();
-    if (!editor) return;
+    if (!editor) {
+      unmountControl();
+      return;
+    }
 
     currentEditor = editor;
 
     const modelButton = findModelButton(editor);
     if (!modelButton) {
-      if (control?.isConnected) control.remove();
+      unmountControl();
+      return;
+    }
+
+    const actionRow = findActionRow(modelButton);
+    if (!actionRow) {
+      unmountControl();
       return;
     }
 
     if (!control) control = createControl();
 
-    if (control.parentElement !== document.body) document.body.append(control);
-    positionControl(modelButton);
+    if (
+      control.parentElement !== actionRow.container ||
+      control.nextSibling !== actionRow.anchor
+    ) {
+      actionRow.container.insertBefore(control, actionRow.anchor);
+    }
+    control.style.visibility = "visible";
   }
 
   function scheduleMount() {
@@ -331,7 +371,14 @@
   }
 
   function appendLatestInfo(editor) {
-    if (!checkbox?.checked || !editor || !isVisible(editor)) return;
+    if (
+      !isSupportedPage() ||
+      !checkbox?.checked ||
+      !editor ||
+      !isVisible(editor)
+    ) {
+      return;
+    }
 
     const value = editorText(editor);
     if (!value.trim() || endsWithSuffix(value)) return;

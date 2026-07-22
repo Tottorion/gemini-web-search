@@ -2,8 +2,9 @@
   --gws-control-height: 32px;
   --gws-checkbox-size: 16px;
   box-sizing: border-box;
-  position: fixed;
-  z-index: 20;
+  position: static;
+  flex: 0 0 auto;
+  align-self: center;
   display: inline-flex;
   align-items: center;
   width: auto;
@@ -12,7 +13,7 @@
   padding: 0;
   color: inherit;
   font: inherit;
-  visibility: hidden;
+  visibility: visible;
 }
 
 #gemini-web-search-control .gemini-web-search-label {
