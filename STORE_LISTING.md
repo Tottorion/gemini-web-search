@@ -1,5 +1,9 @@
 # Chrome ウェブストア掲載情報
 
+## 公開URL
+
+- プライバシーポリシー: https://sites.google.com/relymate.com/gemini-web-search-policy/
+
 ## 拡張機能名
 
 Gemini 最新情報スイッチ
